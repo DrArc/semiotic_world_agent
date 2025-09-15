@@ -1,4 +1,18 @@
-# Semiotic World Agent — 2D→3D Generation Pipeline
+# Semiocity_Agent — 2D→3D Generation Explorations 
+
+This is part of the Academic work at Iaac Barcelona for the Master's Program im Advance Computation for Architecture and Design 2024-2025
+
+## Team Members: 
+
+### Jose, Francesco, and Paul 
+
+Purpuse :
+
+<img width="1333" height="750" alt="image" src="https://github.com/user-attachments/assets/61bcf820-3063-4ae5-8cca-158fbed983ab" />
+
+
+Technical Data and Use Imstructions:
+
 A streamlined AI system for generating immersive 3D worlds from 2D images using a unified PyQt6 interface.
 
 🏗️ Architecture Overview

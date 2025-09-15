@@ -8,7 +8,7 @@ from diffusers import FluxKontextPipeline
 from diffusers.utils import load_image
 
 # Use the same prompt as the working script
-DEFAULT_PROMPT = "convert image into a clean monochrome architectural model with no textures,ambient lighting and clean smooth geometry while removing details such as people, railings, background, water and trees"
+DEFAULT_PROMPT = "convert image into a clean monochrome architectural model with no textures,ambient lighting and clean smooth geometry while removing details such as people, railings, background, water and trees"  #Prompt used by Michal Gryko's comfyui workflow
 
 def load_hf_token():
     """Load Hugging Face token from environment or api/keys.py"""

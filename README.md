@@ -1,4 +1,4 @@
-Semiotic World Agent — 2D→3D Generation Pipeline
+# Semiotic World Agent — 2D→3D Generation Pipeline
 A streamlined AI system for generating immersive 3D worlds from 2D images using a unified PyQt6 interface.
 
 🏗️ Architecture Overview

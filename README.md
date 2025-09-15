@@ -1,48 +1,46 @@
-# **Semiotic World Agent — 2D→3D Generation Pipeline**
+# Semiocity_Agent — 2D→3D Generation Explorations 
+
+This is part of the Academic work at Iaac Barcelona for the Master's Program im Advance Computation for Architecture and Design 2024-2025
+
+## Team Members: 
+
+### Jose, Francesco, and Paul 
+
+Purpuse :
+
+<img width="1333" height="750" alt="image" src="https://github.com/user-attachments/assets/61bcf820-3063-4ae5-8cca-158fbed983ab" />
+
+
+Technical Data and Use Imstructions:
 
 A streamlined AI system for generating immersive 3D worlds from 2D images using a unified PyQt6 interface.
 
-## **🏗️ Architecture Overview**
+🏗️ Architecture Overview
+The system uses a unified approach with a single main application that integrates all workflow components:
 
-The system uses a **unified approach** with a single main application that integrates all workflow components:
-
-### **Core Components**
-- **Main Application**: `RUN_SemioCity_UI.py` - Unified PyQt6 interface
-- **3D Viewer**: `3d_viewer_simple_working.html` - Web-based 3D visualization
-- **Fallback Viewer**: `3d_viewer_self_contained_fixed.html` - Self-contained 3D viewer
-- **API Keys**: `api/keys.py` - Hugging Face and other API credentials
-
-### **Workflow Modules**
-- **`01_ai_generation/`** - Edited FLUX image generation
-- **`02_remove_background/`** - Edited FLUX Kontext background removal
-- **`03_2D_to_3D/`** - Edited Hunyuan3D 3D generation backend
-
-## **🚀 Quick Start**
-
-### **Prerequisites and tested on**
-
-- Conda enviroment Python 3.11.3
-- Windows 11
-- CUDA-enabled GPU (recommended)
-- Hugging Face account and token
-- Downloaded Three.js repository add to root folder: git clone --depth=1 https://github.com/mrdoob/three.js.git
-
-### **Installation**
-
-1. **Clone the repository**:
-```bash
+Core Components
+Main Application: RUN_SemioCity_UI.py - Unified PyQt6 interface
+3D Viewer: 3d_viewer_simple_working.html - Web-based 3D visualization
+Fallback Viewer: 3d_viewer_self_contained_fixed.html - Self-contained 3D viewer
+API Keys: api/keys.py - Hugging Face and other API credentials
+Workflow Modules
+01_ai_generation/ - Edited FLUX image generation
+02_remove_background/ - Edited FLUX Kontext background removal
+03_2D_to_3D/ - Edited Hunyuan3D 3D generation backend
+🚀 Quick Start
+Prerequisites and tested on
+Conda enviroment Python 3.11.3
+Windows 11
+CUDA-enabled GPU (recommended)
+Hugging Face account and token
+Downloaded Three.js repository add to root folder: git clone --depth=1 https://github.com/mrdoob/three.js.git
+Installation
+Clone the repository:
 git clone <repository-url>
 cd semiotic_world_agent
-```
-
-2. **Set up API keys**:
-Edit `api/keys.py` with your Hugging Face token:
-```python
+Set up API keys: Edit api/keys.py with your Hugging Face token:
 HF_TOKEN = "your_hugging_face_token_here"
-```
-
-3. **Install dependencies**:
-```bash
+Install dependencies:
 # Install all dependencies (consolidated requirements file)
 pip install -r requirements.txt
 
@@ -50,46 +48,14 @@ pip install -r requirements.txt
 pip install PyQt6 PyQt6-WebEngine torch torchvision diffusers transformers
 pip install trimesh open3d rembg pillow numpy python-dotenv opencv-python
 pip install accelerate safetensors huggingface-hub scikit-image scipy
-```
+Note: The requirements.txt file contains all necessary dependencies with specific versions to ensure compatibility. It includes 47 packages covering UI, AI/ML, image processing, 3D generation, and utilities.
 
-**Note**: The `requirements.txt` file contains all necessary dependencies with specific versions to ensure compatibility. It includes 47 packages covering UI, AI/ML, image processing, 3D generation, and utilities.
-
-4. **Run the application**:
-```
+Run the application:
 python RUN_SemioCity_UI.py
-```
+📁 Current Project Structure
+semiotic_world_agent/
+├── RUN_SemioCity_UI.py # GUI + orchestrator (CLI flags optional) ├── web/ │ └── 3d_viewer.html # single viewer, CDN or offline ├── requirements.txt # pinned deps ├── .env.example # sample env (do NOT commit .env) ├── api/ │ └── keys.py # reads tokens from env ├── shared/ │ ├── init.py │ ├── common.py │ └── settings.py # central defaults (size, steps, models) ├── 01_ai_generation/ │ └── run_flux_workflow.py ├── 02_remove_background/ │ └── flux_kontext_simple.py ├── 03_2D_to_3D/ │ ├── 3d_backend/ │ │ ├── hy3dshape/ │ │ └── hy3dpaint/ │ └── hunyuan3d21/ └── output/ ├── images/ ├── meshes/ # .glb recommended ├── textured/ └── depth/
 
-## **📁 Current Project Structure**
-
-
-## **semiotic_world_agent/**
-
-├── RUN_SemioCity_UI.py                 # GUI + orchestrator (CLI flags optional)
-├── web/
-│   └── 3d_viewer.html                  # single viewer, CDN or offline
-├── requirements.txt                    # pinned deps
-├── .env.example                        # sample env (do NOT commit .env)
-├── api/
-│   └── keys.py                         # reads tokens from env
-├── shared/
-│   ├── __init__.py
-│   ├── common.py
-│   └── settings.py                     # central defaults (size, steps, models)
-├── 01_ai_generation/
-│   └── run_flux_workflow.py
-├── 02_remove_background/
-│   └── flux_kontext_simple.py
-├── 03_2D_to_3D/
-│   ├── 3d_backend/
-│   │   ├── hy3dshape/
-│   │   └── hy3dpaint/
-│   └── hunyuan3d21/
-└── output/
-    ├── images/
-    ├── meshes/                         # .glb recommended
-    ├── textured/
-    └── depth/
-```
 
 ## **🎯 Key Features**
 

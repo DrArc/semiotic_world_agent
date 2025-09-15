@@ -1,0 +1,55 @@
+# === Drop-in patch for your UI file (RUN_SemioCity_UI.py) ===
+# 1) Add this import near the top (after other imports):
+# from chat_controller import ChatController
+
+# 2) In SemioAgentUI.__init__, add:
+#     self.chat = ChatController()
+
+# 3) Replace send_chat_message() with this:
+
+def send_chat_message(self):
+    message = self.chat_input.toPlainText().strip()
+    if not message:
+        return
+    self.chat_display.append(f"You: {message}")
+    self.chat_input.clear()
+
+    # Run the agent in a worker so the UI doesn't freeze
+    def _chat_call(user_text, current_img):
+        ctrl = getattr(self, "chat", None) or ChatController()
+        return ctrl.ask(user_text, image_path=current_img)
+
+    self.worker = WorkerStream(_chat_call, message, self.current_image)
+    self.worker.log.connect(self.log)
+
+    def _finish(_, res):
+        # Show a compact assistant note
+        note = res.get("notes", "")
+        self.chat_display.append(f"AI: {note}")
+
+        # If vision analysis arrived, pretty-print summary
+        if "analysis" in res:
+            a = res["analysis"]
+            self.chat_display.append(
+                f"summary: {a.get('summary','')}\n"
+                f"denotation: {a.get('denotation','')}\n"
+                f"connotation: {a.get('connotation','')}\n"
+                f"myth: {a.get('myth','')}"
+            )
+
+        # Dispatch actions to the pipeline
+        act = res.get("action", "noop")
+        args = res.get("args", {})
+        if act == "generate_image" and args.get("prompt"):
+            self.prompt_input.setPlainText(args["prompt"])
+            self.generate_image()
+        elif act == "monochrome_clean" and self.current_image:
+            self.remove_background()
+        elif act == "generate_3d" and self.current_image:
+            self.generate_3d()
+        elif act == "analyze_image":
+            pass  # already handled
+
+    self.worker.finished.connect(_finish)
+    self.worker.errored.connect(lambda e: self.chat_display.append(f"AI error: {e}"))
+    self.worker.start()

@@ -1,5 +1,3 @@
-
-#!/usr/bin/env python3
 """
 batch_vision_prompts.py
 -----------------------

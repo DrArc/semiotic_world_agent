@@ -6,31 +6,6 @@ batch_vision_prompts.py
 Analyze a folder of images using a **local LM Studio** vision-enabled model and
 generate a **semiotics-forward architecture prompt** per image. Results are written
 to a CSV named **metadata.csv** with two columns: filename,prompt.
-
-What the prompt includes (single line, model-generated):
-- architecture style (e.g., brutalist, high-tech, critical regionalist)
-- environment/context (urban, coastal, alpine, interiors, etc.)
-- material palette (concrete, glass fins, weathering steel, etc.)
-- light/mood (soft overcast, golden hour backlight, overcast diffuse)
-- photography type (axonometric/axon at 45°, tilt-shift, long lens, etc.)
-- MUST include the phrase **"axonometric at 45°"** (unless the model refuses)
-
-Requirements
-- LM Studio server running locally (OpenAI-compatible): http://localhost:1234/v1
-- A vision-enabled model loaded in LM Studio (default: google/gemma-3-27b — change if needed)
-- Python packages: requests, pillow
-
-Usage
-    python batch_vision_prompts.py --src path/to/images --out metadata.csv
-    # optional knobs
-    --model "google/gemma-3-27b"
-    --max-side 1024
-    --timeout 180
-    --pattern "*.png,*.jpg,*.jpeg"
-
-Tip
-- You can point --src to your UI's output images folder (e.g., output/images) to
-  auto-write prompts for the latest generations.
 """
 
 from __future__ import annotations

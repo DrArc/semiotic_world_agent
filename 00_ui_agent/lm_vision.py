@@ -5,7 +5,7 @@ from pathlib import Path
 from PIL import Image
 
 LM_BASE  = "http://localhost:1234/v1"     # LM Studio server
-LM_MODEL = "google/gemma-3-27b"                  # set to the exact model name in LM Studio
+LM_MODEL = "google/gemma-3n-e4b"                  # set to the exact model name in LM Studio
 
 SYSTEM_PROMPT = (
     "You are an expert architecture image analyst. "

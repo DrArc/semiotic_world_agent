@@ -13,6 +13,8 @@ Purpuse :
 
 Technical Data and Use Imstructions:
 
+# In drive Folder path 00_GitHub_Repo\Model\Lora
+
 A streamlined AI system for generating immersive 3D worlds from 2D images using a unified PyQt6 interface.
 
 🏗️ Architecture Overview

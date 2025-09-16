@@ -2,13 +2,15 @@ import os
 import sys
 import argparse
 from pathlib import Path
+import gc
+import time
 
 import torch
 from diffusers import FluxKontextPipeline
 from diffusers.utils import load_image
 
 # Use the same prompt as the working script
-DEFAULT_PROMPT = "convert image into a clean monochrome architectural model with no textures,ambient lighting and clean smooth geometry while removing details such as people, railings, background, water and trees"
+DEFAULT_PROMPT = "convert image into a clean monochrome architectural model with no textures,ambient lighting and clean smooth geometry while removing details such as people, railings, background, water and trees"  #Prompt used by Michal Gryko's comfyui workflow
 
 def load_hf_token():
     """Load Hugging Face token from environment or api/keys.py"""
@@ -42,47 +44,67 @@ def load_hf_token():
     
     return token
 
-# Global pipeline cache
-_KONTEXT_PIPE = None
-
-def get_kontext_pipe():
-    """Get cached Kontext pipeline"""
-    global _KONTEXT_PIPE
-    
-    if _KONTEXT_PIPE is None:
-        print("[INFO] Loading Kontext pipeline (first time)")
-        _KONTEXT_PIPE = FluxKontextPipeline.from_pretrained(
-            "black-forest-labs/FLUX.1-Kontext-dev", torch_dtype=torch.bfloat16
-        )
-        _KONTEXT_PIPE.to("cuda")
-        print("[INFO] Kontext pipeline loaded")
-    
-    return _KONTEXT_PIPE
-
-def run_kontext(image_path: str, output_path: str, prompt: str = DEFAULT_PROMPT):
+def run_kontext(image_path: str, output_path: str, prompt: str = DEFAULT_PROMPT,
+                steps: int = 20, guidance: float = 3.0):
     """
-    Run Kontext background removal - uses the same logic as the working script
-    but accepts dynamic image path instead of hardcoded one
+    Run Kontext background removal - memory-safe approach
     """
+    print(f"[INFO] Kontext: loading {image_path}")
     
-    # Get the pipeline (same as working script)
-    pipe = get_kontext_pipe()
+    use_cuda = torch.cuda.is_available()
+    dtype = torch.bfloat16 if use_cuda else torch.float32  # Key: no bf16 on CPU
     
-    # Load image (dynamic path instead of hardcoded)
+    pipe = FluxKontextPipeline.from_pretrained(
+        "black-forest-labs/FLUX.1-Kontext-dev",
+        torch_dtype=dtype,
+        use_safetensors=True
+    )
+    
+    # Memory-friendly placement
+    if use_cuda:
+        try:
+            pipe.to("cuda")
+            print("[INFO] Kontext on CUDA")
+        except torch.cuda.OutOfMemoryError:
+            print("[WARN] OOM on CUDA; enabling CPU offload")
+            torch.cuda.empty_cache()
+            pipe.enable_model_cpu_offload()  # Keeps most work on GPU but swaps modules
+            print("[INFO] Kontext using CPU offload")
+    else:
+        pipe.to("cpu")
+        print("[INFO] Kontext on CPU (float32)")
+    
+    # Memory optimizations
+    pipe.enable_vae_slicing()
+    pipe.enable_vae_tiling()
+    
+    # Load image
     image = load_image(image_path).convert("RGB")
+    print(f"[INFO] Image loaded, size: {image.size}")
+    print(f"[INFO] Inference: steps={steps}, guidance={guidance}")
     
-    # Use exact same parameters as working script
-    prompt = prompt or DEFAULT_PROMPT
-    image = pipe(
+    # Run inference
+    t0 = time.time()
+    out = pipe(
         image=image,
         prompt=prompt,
-        guidance_scale=2.5,
-        generator=torch.Generator().manual_seed(42),
+        guidance_scale=guidance,
+        num_inference_steps=steps,
+        generator=torch.Generator("cpu").manual_seed(42),
     ).images[0]
     
-    # Save to dynamic output path instead of hardcoded
-    image.save(output_path)
+    inference_time = time.time() - t0
+    print(f"[INFO] Kontext done in {inference_time:.1f}s")
+    
+    # Save output
+    out.save(output_path)
     print(f"[DONE] Saved to: {output_path}")
+    
+    # Cleanup
+    del out, image, pipe
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
     
     return output_path
 

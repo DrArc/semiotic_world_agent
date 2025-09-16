@@ -181,9 +181,9 @@ class InProcessOrchestrator:
         self.out_root = out_root
 
     # 01: image generation
-    def generate_image_stream(self, prompt: str, steps: int = 10, seed: int = 123456789,
-                              model: str = "black-forest-labs/FLUX.1-schnell", style: str = None,
-                              on_log: Callable[[str], None] | None = None) -> Path:
+    def generate_image_stream(self, prompt: str, steps: int = 30, seed: int = 123456789,
+                              model: str = "black-forest-labs/FLUX.1-dev", style: str = None,
+                              use_lora: bool = True, on_log: Callable[[str], None] | None = None) -> Path:
         out = self.out_root / "images"
         out.mkdir(parents=True, exist_ok=True)
         ts = time.strftime("%Y%m%d-%H%M%S")
@@ -191,7 +191,7 @@ class InProcessOrchestrator:
         if on_log: on_log(f"Loading FLUX pipeline: {model}")
         # Import on demand to avoid import errors if user doesn't need this step
         from run_flux_workflow import main as flux_main  # type: ignore
-        flux_main(prompt, str(out_path), steps, seed, model)
+        flux_main(prompt, str(out_path), steps, seed, model, use_lora=use_lora)
         if on_log: on_log(f"Generated image -> {out_path}")
         return out_path
 
@@ -202,11 +202,21 @@ class InProcessOrchestrator:
         out.mkdir(parents=True, exist_ok=True)
         ts = time.strftime("%Y%m%d-%H%M%S")
         out_path = out / f"mono_{ts}.png"
+        # Validate input image path with clear logging
+        try:
+            resolved_in = Path(image_path).resolve()
+        except Exception:
+            resolved_in = Path(str(image_path))
+        if on_log: on_log(f"Step 2: input image = {resolved_in}")
+        if not resolved_in.exists():
+            if on_log: on_log(f"Step 2 ERROR: input image not found: {resolved_in}")
+            raise FileNotFoundError(f"Kontext input not found: {resolved_in}")
         if on_log: on_log("Loading FLUX Kontext pipeline")
 
         try:
             from flux_kontext_simple import run_kontext, DEFAULT_PROMPT  # type: ignore
-            run_kontext(str(image_path), str(out_path), prompt or DEFAULT_PROMPT)
+            if on_log: on_log(f"Running Kontext → {out_path}")
+            run_kontext(str(resolved_in), str(out_path), prompt or DEFAULT_PROMPT)
             if on_log: on_log(f"Monochrome image -> {out_path}")
             return out_path
         except Exception as e:
@@ -316,13 +326,14 @@ class PipelineWorker(QThread):
     intermediate = pyqtSignal(str, dict)  # NEW: for intermediate step updates
 
     def __init__(self, orch: InProcessOrchestrator, prompt: Optional[str], image_path: Optional[str],
-                 enable_texture: bool, steps: int = 10):
+                 enable_texture: bool, steps: int = 10, use_lora: bool = True):
         super().__init__()
         self.orch = orch
         self.prompt = prompt
         self.image_path = image_path
         self.enable_texture = enable_texture
         self.steps = steps
+        self.use_lora = use_lora
 
     def run(self):
         try:
@@ -337,11 +348,16 @@ class PipelineWorker(QThread):
                 depth_max=200
             )
             self.log.emit(f"Started tracking session: {session_id}")
+            
+            # Validate we have either a prompt or an image
+            if not self.prompt and not self.image_path:
+                self.log.emit("Pipeline ERROR: No prompt or image provided")
+                raise ValueError("Pipeline requires either a prompt or an image")
 
             # Step 1
             if self.prompt and not self.image_path:
                 self.progress.emit(10); self.log.emit("Step 1: generate image")
-                img = self.orch.generate_image_stream(self.prompt, steps=self.steps)  # Use configured steps
+                img = self.orch.generate_image_stream(self.prompt, steps=self.steps, use_lora=self.use_lora)  # Use configured steps
                 self.image_path = str(img)
                 result["image_generated"] = self.image_path
                 log_step1(self.image_path)  # Track step 1
@@ -356,7 +372,13 @@ class PipelineWorker(QThread):
             # Step 2
             self.progress.emit(35); self.log.emit("Step 2: background/texture cleanup")
             try:
-                mono = self.orch.monochrome_clean_stream(Path(self.image_path))
+                # Ensure we have a valid image path for Step 2
+                if not self.image_path:
+                    self.log.emit("Step 2 ERROR: No image available for background removal")
+                    raise ValueError("No image available for Step 2")
+                
+                self.log.emit(f"Step 2: Processing image: {self.image_path}")
+                mono = self.orch.monochrome_clean_stream(Path(self.image_path), on_log=self.log.emit)
                 result["image_cleaned"] = str(mono)
                 log_step2(str(mono))  # Track step 2
                 self.log.emit(f"Step 2 completed: {mono}")
@@ -743,6 +765,12 @@ class SemioAgentUI(QMainWindow):
         steps_layout.addStretch()
         s1_layout.addLayout(steps_layout)
 
+        # LoRa option
+        self.lora_cb = QCheckBox("Use SemioCity LoRa (architectural style)")
+        self.lora_cb.setChecked(True)
+        self.lora_cb.setToolTip("Enable SemioCity LoRa for enhanced architectural generation")
+        s1_layout.addWidget(self.lora_cb)
+
         # Image loading
         self.load_btn = QPushButton("📁 Load Image")
         self.load_btn.clicked.connect(self.load_image)
@@ -995,6 +1023,13 @@ class SemioAgentUI(QMainWindow):
         self.debug_3d_btn.setFixedSize(80, 40)
         self.debug_3d_btn.setToolTip("Test 3D Viewer with latest mesh")
         button_layout.addWidget(self.debug_3d_btn)
+
+        # Test Step 2 button
+        self.test_step2_btn = QPushButton("🧪 Test Step 2")
+        self.test_step2_btn.clicked.connect(self.test_step2_direct)
+        self.test_step2_btn.setFixedSize(100, 40)
+        self.test_step2_btn.setToolTip("Test Step 2 directly on current image")
+        button_layout.addWidget(self.test_step2_btn)
 
         # Add stretch to push right buttons to the right
         button_layout.addStretch(1)
@@ -1393,7 +1428,8 @@ class SemioAgentUI(QMainWindow):
             return
         steps = self.steps_spinbox.value()
         self.set_busy(True); self.log(f"Generating image with {steps} steps...")
-        self.worker = WorkerStream(self.orch.generate_image_stream, prompt, steps)
+        # Pass use_lora explicitly; avoid shifting positional args into the seed slot
+        self.worker = WorkerStream(self.orch.generate_image_stream, prompt, steps, use_lora=self.lora_cb.isChecked())
         self.worker.log.connect(self.log)
         def _finish(_, path):
             self.set_busy(False)
@@ -1466,42 +1502,60 @@ class SemioAgentUI(QMainWindow):
         prompt = self.prompt_input.toPlainText().strip() or None
         img = None if prompt and not self.current_image else self.current_image
         self.set_busy(True); self.log("Running full pipeline...")
+        
+        # Disable viewer accel before starting; we'll re-enable on finish/error
+        self._park_viewer()
+        self._set_viewer_accel(False)
+        
         steps = self.steps_spinbox.value()
-        self.pworker = PipelineWorker(self.orch, prompt, img, self.texture_cb.isChecked(), steps)
+        self.pworker = PipelineWorker(self.orch, prompt, img, self.texture_cb.isChecked(), steps, self.lora_cb.isChecked())
         self.pworker.log.connect(self.log)
         self.pworker.progress.connect(lambda p: self.progress.setValue(p))
-        self.pworker.intermediate.connect(self._on_intermediate)  # NEW: connect intermediate signals
-        def _finish(res):
-            self.set_busy(False)
-            self.log("Full pipeline done")
-
-            # Update image previews if we have the intermediate results
-            if res.get("image_generated"):
-                self._set_preview(self.prev1, res["image_generated"])
-                self.log(f"Updated Step 1 preview: {res['image_generated']}")
-
-            if res.get("image_cleaned"):
-                self._set_preview(self.prev2, res["image_cleaned"])
-                self.log(f"Updated Step 2 preview: {res['image_cleaned']}")
-
-            # Update 3D viewer
-            files = []
-            if res.get("mesh_shape_glb"): 
-                files.append(f"Shape: {os.path.basename(res['mesh_shape_glb'])}")
-                self.current_mesh_path = res['mesh_shape_glb']
-            if res.get("mesh_textured_glb"): 
-                files.append(f"Textured: {os.path.basename(res['mesh_textured_glb'])}")
-                self.current_mesh_path = res['mesh_textured_glb']
-
-            if files:
-                self._update_3d_viewer(files)
-                self.open_mesh_btn.setEnabled(True)
-                self.download_btn.setEnabled(True)
-            else:
-                self._update_3d_viewer([])
-        self.pworker.finished.connect(_finish)
-        self.pworker.errored.connect(lambda e: (self.set_busy(False), QMessageBox.critical(self, "Error", e), self.log(e)))
+        self.pworker.intermediate.connect(self._on_intermediate)
+        self.pworker.finished.connect(lambda res: (self._set_viewer_accel(True), self._full_finish(res)))
+        self.pworker.errored.connect(lambda e: (self._set_viewer_accel(True), self._full_error(e)))
         self.pworker.start()
+
+    def _full_finish(self, res):
+        """Handle full pipeline completion"""
+        self.set_busy(False)
+        self.log("Full pipeline done")
+
+        # Update image previews if we have the intermediate results
+        if res.get("image_generated"):
+            self._set_preview(self.prev1, res["image_generated"])
+            self.log(f"Updated Step 1 preview: {res['image_generated']}")
+
+        if res.get("image_cleaned"):
+            self._set_preview(self.prev2, res["image_cleaned"])
+            self.log(f"Updated Step 2 preview: {res['image_cleaned']}")
+
+        # Restore 3D viewer and load mesh
+        self._restore_viewer()
+        
+        # Update 3D viewer with mesh
+        files = []
+        if res.get("mesh_shape_glb"): 
+            files.append(f"Shape: {os.path.basename(res['mesh_shape_glb'])}")
+            self.current_mesh_path = res['mesh_shape_glb']
+        if res.get("mesh_textured_glb"): 
+            files.append(f"Textured: {os.path.basename(res['mesh_textured_glb'])}")
+            self.current_mesh_path = res['mesh_textured_glb']
+
+        if files:
+            # Wait a moment for viewer to load, then update with mesh
+            from PyQt6.QtCore import QTimer
+            QTimer.singleShot(2000, lambda: self._update_3d_viewer(files))
+            self.open_mesh_btn.setEnabled(True)
+            self.download_btn.setEnabled(True)
+        else:
+            self._update_3d_viewer([])
+
+    def _full_error(self, e):
+        """Handle full pipeline error"""
+        self.set_busy(False)
+        QMessageBox.critical(self, "Error", e)
+        self.log(e)
 
     def _on_intermediate(self, stage, payload):
         """Handle intermediate step updates for immediate UI refresh"""
@@ -1613,6 +1667,69 @@ class SemioAgentUI(QMainWindow):
                 self.log("🔧 No mesh files found in output/meshes/")
         else:
             self.log("🔧 No meshes directory found")
+
+    def test_step2_direct(self):
+        """Test Step 2 directly without full pipeline"""
+        if not self.current_image:
+            self.log("❌ No current image to test Step 2")
+            return
+        
+        self.log("🧪 Testing Step 2 directly...")
+        try:
+            # Park viewer and disable GPU acceleration to free VRAM
+            self._park_viewer()
+            self._set_viewer_accel(False)
+            
+            mono = self.orch.monochrome_clean_stream(Path(self.current_image), on_log=self.log)
+            self.log(f"✅ Step 2 test successful: {mono}")
+            self._set_preview(self.prev2, str(mono))
+            
+            # Re-enable GPU acceleration
+            self._set_viewer_accel(True)
+        except Exception as e:
+            self.log(f"❌ Step 2 test failed: {e}")
+            # Re-enable GPU acceleration even on error
+            self._set_viewer_accel(True)
+
+    def _set_viewer_accel(self, enable: bool):
+        """Toggle GPU acceleration for WebEngine viewer only"""
+        if not getattr(self, "viewer_web", None):
+            return
+        try:
+            from PyQt6.QtWebEngineCore import QWebEngineSettings
+            s = self.viewer_web.settings()
+            s.setAttribute(QWebEngineSettings.WebAttribute.WebGLEnabled, enable)
+            s.setAttribute(QWebEngineSettings.WebAttribute.Accelerated2dCanvasEnabled, enable)
+            self.log(f"🔧 WebEngine GPU acceleration: {'enabled' if enable else 'disabled'}")
+        except Exception as e:
+            self.log(f"⚠️ Could not toggle WebEngine GPU: {e}")
+
+    def _park_viewer(self):
+        """Drop WebGL content so GL textures are released"""
+        if getattr(self, "viewer_web", None):
+            # Don't reset viewer_ready - just clear the content
+            self.viewer_web.setHtml(
+                "<html><body style='background:#1a1a1a;color:#aaa;"
+                "font-family:sans-serif;padding:1rem'>Viewer paused during processing…</body></html>"
+            )
+            self.log("🔧 Viewer parked to free VRAM")
+
+    def _restore_viewer(self):
+        """Restore the 3D viewer after processing"""
+        if getattr(self, "viewer_web", None):
+            # Use the improved 3D viewer with better lighting and auto-rotation
+            viewer_html_path = os.path.join(os.path.dirname(__file__), "3d_viewer_improved.html")
+            if not os.path.exists(viewer_html_path):
+                # Fallback to simple working viewer
+                viewer_html_path = os.path.join(os.path.dirname(__file__), "3d_viewer_simple_working.html")
+                if not os.path.exists(viewer_html_path):
+                    viewer_html_path = os.path.join(os.path.dirname(__file__), "3d_viewer_self_contained_fixed.html")
+            
+            if os.path.exists(viewer_html_path):
+                self.viewer_web.load(QUrl.fromLocalFile(os.path.abspath(viewer_html_path)))
+                self.log("🔧 3D viewer restored with improved lighting")
+            else:
+                self.log("⚠️ Could not find 3D viewer HTML to restore")
 
 
 def main():

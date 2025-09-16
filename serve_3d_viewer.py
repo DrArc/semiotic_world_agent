@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Simple HTTP server to serve the 3D viewer and mesh files
 This fixes CORS issues when loading local GLB files

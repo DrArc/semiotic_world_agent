@@ -1,0 +1,93 @@
+job: extension
+config:
+  name: Semiocity_flux
+  process:
+  - type: sd_trainer
+    training_folder: /content/drive/MyDrive/LoRA_Semiocity/weights
+    performance_log_every: 1000
+    device: cuda:0
+    network:
+      type: lora
+      linear: 16
+      linear_alpha: 16
+      network_kwargs:
+        prefix:
+        - lora_te1.text_model.encoder
+        - transformer.single_transformer_blocks
+        - transformer.transformer_blocks
+    save:
+      dtype: float16
+      save_every: 250
+      max_step_saves_to_keep: 10
+    datasets:
+    - folder_path: /content/drive/MyDrive/dataset_2
+      caption_ext: txt
+      caption_dropout_rate: 0.05
+      shuffle_tokens: false
+      cache_latents_to_disk: true
+      resolution:
+      - 1024
+    train:
+      batch_size: 1
+      steps: 2000
+      gradient_accumulation_steps: 1
+      train_unet: true
+      train_text_encoder: true
+      content_or_style: balanced
+      gradient_checkpointing: true
+      noise_scheduler: flowmatch
+      optimizer: adamw8bit
+      lr: 0.0004
+      ema_config:
+        use_ema: true
+        ema_decay: 0.99
+      dtype: bf16
+    model:
+      name_or_path: black-forest-labs/FLUX.1-schnell
+      is_flux: true
+      quantize: false
+    sample:
+      sampler: flowmatch
+      sample_every: 250
+      width: 1024
+      height: 1024
+      prompts:
+      - "Semiocity - Minimalist Scandinavian pavilion architecture, lakeside environment\
+        \ with dense coniferous forest backdrop, constructed from warm-toned wood\
+        \ cladding and expansive glass walls; interior reveals a welcoming public\
+        \ space, suggesting civic transparency and accessibility, contrasted by the\
+        \ building's imposing geometric form hinting at controlled access. Golden\
+        \ hour lighting casts long shadows across the water, creating a serene yet\
+        \ slightly detached mood. Photography style: architectural visualization with\
+        \ hyperrealism, emphasizing texture and detail, axonometric at 45\xC2\xB0\
+        , wide-angle lens, focus on the interplay between natural materials and sharp\
+        \ angles; subtle reflections in glass suggest both invitation and observation,\
+        \ evoking a sense of curated spectacle within a natural setting."
+      - "Semiocity - Neo-Baroque palace hotel complex, situated within a dense East\
+        \ Asian megacity shrouded in morning mist; gold leaf detailing, polished marble\
+        \ facades, terracotta roof tiles, extensive glazing reflecting the urban context,\
+        \ hinting at both opulence and isolation; overcast daylight evoking a sense\
+        \ of grandeur and veiled power, suggesting civic spectacle masking underlying\
+        \ control; aerial photography with a focus on symmetry and scale, axonometric\
+        \ at 45\xC2\xB0, hyperrealistic rendering, detailed textures, cinematic lighting,\
+        \ wide-angle lens, emphasizing the building's dominance over the surrounding\
+        \ residential areas \xE2\u20AC\u201C a visual metaphor for aspirational excess\
+        \ and social stratification."
+      - "Semiocity - Futurist architecture complex of biomorphic, curvilinear structures\
+        \ clad in iridescent metal panels and glazed terracotta, set within a meticulously\
+        \ landscaped urban park overlooking a dense, hyper-modern cityscape; golden\
+        \ hour light casting long shadows emphasizing the forms\xE2\u20AC\u2122 organic\
+        \ qualities, evoking both technological optimism and a sense of controlled\
+        \ spectacle\xE2\u20AC\u201Da 'city of dreams' aesthetic; lush pink flowering\
+        \ trees and manicured lawns suggest curated public space bordering on artificiality;\
+        \ aerial photography, high detail, axonometric at 45\xC2\xB0, conveying civic\
+        \ ambition and potential for surveillance through comprehensive visual access;\
+        \ photorealistic rendering, octane render, 8k."
+      neg: ''
+      seed: 77
+      walk_seed: true
+      guidance_scale: 4
+      sample_steps: 25
+meta:
+  name: Semiocity_flux
+  version: '1.0'

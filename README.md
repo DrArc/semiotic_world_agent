@@ -2,18 +2,32 @@
 
 This is part of the Academic work at Iaac Barcelona for the Master's Program im Advance Computation for Architecture and Design 2024-2025
 
-## Team Members: 
+# Semiocity — Semiotic-Aware Urban Image Generation Pipeline
 
-### Jose, Francesco, and Paul 
+**Repository for the Master Thesis "Semiocity: Generating Semiotic‑Enriched 3D Models from Text Inputs"**
+
+**Degree:** Master in Advanced Computation for Architecture and Design (MaCAD), Institute for Advanced Architecture of Catalonia (IaaC)
+
+**Primary authors:** Francesco Visconti Prasca(fviscontiprasca/semiotic_labelling), Jose Lazokafatty ([DrArc](https://github.com/DrArc)), Paul Suarez Fuenmayor
+
+**Adviser:** David Andrés León (MaCAD Director)
+
+---
+
+## Abstract
+
+This repository implements a modular, reproducible pipeline for producing semiotic‑aware architectural images from textual prompts and for preparing semiotic conditioning information for downstream 3D generation. The approach combines multi‑modal feature extraction (captioning, segmentation, semantic embeddings), curated real and synthetic datasets, and fine‑tuning of diffusion models (Flux.1d) through both LoRA adapters and full model fine-tuning approaches.
+
+The codebase supports: dataset preparation and unification, BLIP‑2 captioning, segmentation with SAM (and optional YOLO variants), comprehensive semiotic feature extraction with architectural style and urban mood analysis, Flux.1d data preparation with both LoRA and full fine‑tuning variants, evaluation, and inference 
 
 Purpuse :
 
 <img width="1333" height="750" alt="image" src="https://github.com/user-attachments/assets/61bcf820-3063-4ae5-8cca-158fbed983ab" />
 
 
-Technical Data and Use Imstructions:
+# Technical Data and Use Imstructions:
 
-# In drive Folder path 00_GitHub_Repo\Model\Lora
+## LoRa model In drive submmisions Folder path 00_GitHub_Repo\Model\Lora
 
 A streamlined AI system for generating immersive 3D worlds from 2D images using a unified PyQt6 interface.
 

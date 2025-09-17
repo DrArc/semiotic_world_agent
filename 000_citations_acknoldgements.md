@@ -6,6 +6,10 @@ year={2025},
 eprint={2501.12202},
 archivePrefix={arXiv},
 
+## Flux Dreambooth LoRA Train 
+### Collab Book
+"notebook uses Hugging Face Diffusers package to create image generation pipelines"
+### Nono Martínez Alonso, James McBennett & Michal Gryko
 
 ## flux Pipelines
 https://huggingface.co/docs/diffusers/en/api/pipelines/flux

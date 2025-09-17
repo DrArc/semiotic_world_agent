@@ -1,4 +1,4 @@
-## 3D Generation 
+# 3D Generation 
 hunyuan3d22025tencent,
 title={Hunyuan3D 2.0: Scaling Diffusion Models for High Resolution Textured 3D Assets Generation},
 ### Author={Tencent Hunyuan3D Team},
@@ -7,14 +7,14 @@ eprint={2501.12202},
 archivePrefix={arXiv},
 <br>
 
-## Flux Dreambooth LoRA Train 
+# Flux Dreambooth LoRA Train 
 ### Collab Book
 "notebook uses Hugging Face Diffusers package to create image generation pipelines"
 ### Authors: Nono Martínez Alonso, James McBennett & Michal Gryko
 <p></p>
 
 
-## Flux Pipelines
+# Flux Pipelines
 https://huggingface.co/docs/diffusers/en/api/pipelines/flux
 https://huggingface.co/black-forest-labs/FLUX.1-Kontext-dev
 https://huggingface.co/black-forest-labs/FLUX.1-schnell
@@ -22,22 +22,22 @@ https://huggingface.co/black-forest-labs/FLUX.1-schnell
 Year-2024
 <p></p>
 
-## Removal of backgraund Process
+# Removal of backgraund Process
 ### Michal Gryko' Comfiui Kontext Workflow 
 https://www.youtube.com/watch?v=wmrHeIvLLjM&t=29s
 <p></p>
 
-## Coding Assistance and trobleshooting
+# Coding Assistance and trobleshooting
 Cursor ai
 Chat GPT
 <p></p>
 
 
-## Text LLM Finetuning 
+# Text LLM Finetuning 
 Base Model google/gemma-3n-e4b vision enable 
 <p></p>
 
-## Literary Resources
+# Literary Resources
  ### Exploration for academic exploration (not for commercial use)
 
 A Concluding Introduction _ THE RESPONSIBILITY OF FORM	Realistic

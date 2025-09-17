@@ -67,7 +67,7 @@ pip install accelerate safetensors huggingface-hub scikit-image scipy
 Note: The requirements.txt file contains all necessary dependencies with specific versions to ensure compatibility. It includes 47 packages covering UI, AI/ML, image processing, 3D generation, and utilities.
 
 Run the application:
-python RUN_SemioCity_UI.py
+python ## RUN_SemioCity_UI.py
 📁 Current Project Structure
 semiotic_world_agent/
 ├── RUN_SemioCity_UI.py # GUI + orchestrator (CLI flags optional) ├── web/ │ └── 3d_viewer.html # single viewer, CDN or offline ├── requirements.txt # pinned deps ├── .env.example # sample env (do NOT commit .env) ├── api/ │ └── keys.py # reads tokens from env ├── shared/ │ ├── init.py │ ├── common.py │ └── settings.py # central defaults (size, steps, models) ├── 01_ai_generation/ │ └── run_flux_workflow.py ├── 02_remove_background/ │ └── flux_kontext_simple.py ├── 03_2D_to_3D/ │ ├── 3d_backend/ │ │ ├── hy3dshape/ │ │ └── hy3dpaint/ │ └── hunyuan3d21/ └── output/ ├── images/ ├── meshes/ # .glb recommended ├── textured/ └── depth/

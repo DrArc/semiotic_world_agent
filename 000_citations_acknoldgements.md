@@ -38,7 +38,7 @@ Base Model google/gemma-3n-e4b vision enable
 <p></p>
 
 # Literary Resources
- ### Exploration for academic exploration (not for commercial use)
+ ### Academic exploration (not for commercial use)
 
 A Concluding Introduction _ THE RESPONSIBILITY OF FORM	Realistic
 A Fantasia on Modern Themes	Fantasy

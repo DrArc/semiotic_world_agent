@@ -5,13 +5,13 @@ title={Hunyuan3D 2.0: Scaling Diffusion Models for High Resolution Textured 3D A
 year={2025},
 eprint={2501.12202},
 archivePrefix={arXiv},
-
+<p></p>
 
 ## Flux Dreambooth LoRA Train 
 ### Collab Book
 "notebook uses Hugging Face Diffusers package to create image generation pipelines"
-### Nono Martínez Alonso, James McBennett & Michal Gryko
-
+### Authors: Nono Martínez Alonso, James McBennett & Michal Gryko
+<p></p>
 
 
 ## Flux Pipelines
@@ -20,20 +20,22 @@ https://huggingface.co/black-forest-labs/FLUX.1-Kontext-dev
 https://huggingface.co/black-forest-labs/FLUX.1-schnell
 ### Author: Black Forest Labs
 Year-2024
-
+<p></p>
 
 ## Removal of backgraund Process
 ### Michal Gryko' Comfiui Kontext Workflow 
 https://www.youtube.com/watch?v=wmrHeIvLLjM&t=29s
-
+<p></p>
 
 ## Coding Assistance and trobleshooting
 Cursor ai
 Chat GPT
+<p></p>
+
 
 ## Text LLM Finetuning 
 Base Model google/gemma-3n-e4b vision enable 
-
+<p></p>
 
 ## Literary Resources
  ### Exploration for academic exploration (not for commercial use)

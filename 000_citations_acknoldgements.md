@@ -5,7 +5,7 @@ title={Hunyuan3D 2.0: Scaling Diffusion Models for High Resolution Textured 3D A
 year={2025},
 eprint={2501.12202},
 archivePrefix={arXiv},
-<p></p>
+<br>
 
 ## Flux Dreambooth LoRA Train 
 ### Collab Book

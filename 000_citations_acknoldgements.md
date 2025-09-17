@@ -40,10 +40,10 @@ Base Model google/gemma-3n-e4b vision enable
 # Literary Resources
  ### Academic exploration (not for commercial use)
 
-A Concluding Introduction _ THE RESPONSIBILITY OF FORM	Realistic
-A Fantasia on Modern Themes	Fantasy
-A Tale of Two Cities	Realistic
-Alexanders _Bridget	Realistic
+A Concluding Introduction _ THE RESPONSIBILITY OF FORM	Realistic<p></p>
+A Fantasia on Modern Themes	Fantasy<p></p>
+A Tale of Two Cities	Realistic<p></p>
+Alexanders _Bridget	Realistic<p></p>
 Architectural Semiotics Decoding the Language of Space1	Realistic
 Architectural semiotics in the renovation1	Realistic
 Architecture and Democrasy	Realistic

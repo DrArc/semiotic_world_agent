@@ -464,6 +464,8 @@ class SemioAgentUI(QMainWindow):
         self.busy = False
         self.current_image = None
         self.current_mesh_path = None
+        self.current_3d_model_path = None  # Step 3 3D model
+        self.current_city_model_path = None  # Step 4 city fragments
 
         # Initialize ChatController for AI integration
         self.chat = ChatController() if ChatController else None
@@ -471,6 +473,21 @@ class SemioAgentUI(QMainWindow):
         # Apply dark theme
         self._apply_dark_theme()
         self._setup_ui()
+        
+        # Check if there are existing meshes and enable city button if so
+        self._check_existing_meshes()
+
+    def _check_existing_meshes(self):
+        """Check if there are existing meshes and enable city button if available"""
+        try:
+            mesh_dir = self.out_root / "meshes"
+            if mesh_dir.exists():
+                glb_files = list(mesh_dir.glob("*.glb"))
+                if glb_files:
+                    self.city_btn.setEnabled(True)
+                    self.log(f"Found {len(glb_files)} existing meshes - city fragments button enabled")
+        except Exception as e:
+            self.log(f"Error checking existing meshes: {e}")
 
     def _apply_dark_theme(self):
         """Apply elegant dark theme with improved styling"""
@@ -838,6 +855,19 @@ class SemioAgentUI(QMainWindow):
 
         layout.addWidget(step3)
 
+        # Step 4: City Fragments
+        step4 = QGroupBox("Step 4: City Fragments")
+        s4_layout = QVBoxLayout(step4)
+        s4_layout.setSpacing(8)
+
+        self.city_btn = QPushButton("🏙️ Generate City Fragments")
+        self.city_btn.setProperty("primary", True)
+        self.city_btn.clicked.connect(self.generate_city_fragments)
+        self.city_btn.setEnabled(False)
+        s4_layout.addWidget(self.city_btn)
+
+        layout.addWidget(step4)
+
         # Full pipeline
         pipe_group = QGroupBox("Full Pipeline")
         pipe_layout = QVBoxLayout(pipe_group)
@@ -1017,19 +1047,22 @@ class SemioAgentUI(QMainWindow):
         self.open_mesh_btn.setFixedSize(140, 40)
         button_layout.addWidget(self.open_mesh_btn)
 
-        # Debug button for testing 3D viewer
-        self.debug_3d_btn = QPushButton("🔧 Test 3D")
-        self.debug_3d_btn.clicked.connect(self.debug_3d_viewer)
-        self.debug_3d_btn.setFixedSize(80, 40)
-        self.debug_3d_btn.setToolTip("Test 3D Viewer with latest mesh")
-        button_layout.addWidget(self.debug_3d_btn)
+        # Test buttons removed as requested
 
-        # Test Step 2 button
-        self.test_step2_btn = QPushButton("🧪 Test Step 2")
-        self.test_step2_btn.clicked.connect(self.test_step2_direct)
-        self.test_step2_btn.setFixedSize(100, 40)
-        self.test_step2_btn.setToolTip("Test Step 2 directly on current image")
-        button_layout.addWidget(self.test_step2_btn)
+        # Model switching buttons
+        self.show_3d_btn = QPushButton("🔷 Show 3D")
+        self.show_3d_btn.clicked.connect(self.show_3d_model)
+        self.show_3d_btn.setEnabled(False)
+        self.show_3d_btn.setFixedSize(80, 40)
+        self.show_3d_btn.setToolTip("Show Step 3 3D model")
+        button_layout.addWidget(self.show_3d_btn)
+
+        self.show_city_btn = QPushButton("🏙️ Show City")
+        self.show_city_btn.clicked.connect(self.show_city_model)
+        self.show_city_btn.setEnabled(False)
+        self.show_city_btn.setFixedSize(80, 40)
+        self.show_city_btn.setToolTip("Show Step 4 city fragments")
+        button_layout.addWidget(self.show_city_btn)
 
         # Add stretch to push right buttons to the right
         button_layout.addStretch(1)
@@ -1400,8 +1433,11 @@ class SemioAgentUI(QMainWindow):
         # Disable actions back to initial state
         self.clean_btn.setEnabled(False)
         self.mesh_btn.setEnabled(False)
+        self.city_btn.setEnabled(False)
         self.open_mesh_btn.setEnabled(False)
         self.download_btn.setEnabled(False)
+        self.show_3d_btn.setEnabled(False)
+        self.show_city_btn.setEnabled(False)
 
         # Progress + status area
         self.progress.reset()
@@ -1418,6 +1454,7 @@ class SemioAgentUI(QMainWindow):
         self._set_preview(self.prev1, p)
         self.clean_btn.setEnabled(True)
         self.mesh_btn.setEnabled(True)
+        # city_btn should only be enabled after 3D meshes are available
         self.log(f"Loaded {os.path.basename(p)}")
 
     def generate_image(self):
@@ -1436,6 +1473,7 @@ class SemioAgentUI(QMainWindow):
             self.current_image = str(path)
             self._set_preview(self.prev1, self.current_image)
             self.clean_btn.setEnabled(True); self.mesh_btn.setEnabled(True)
+            # city_btn should only be enabled after 3D meshes are available
             self.log(f"Image ready: {path}")
         self.worker.finished.connect(_finish)
         self.worker.errored.connect(lambda e: (self.set_busy(False), QMessageBox.critical(self, "Error", e), self.log(e)))
@@ -1451,6 +1489,7 @@ class SemioAgentUI(QMainWindow):
             self.current_image = str(path)
             self._set_preview(self.prev2, self.current_image)
             self.mesh_btn.setEnabled(True)
+            # city_btn should only be enabled after 3D meshes are available
             self.log(f"Cleaned image: {path}")
         self.worker.finished.connect(_finish)
         self.worker.errored.connect(lambda e: (self.set_busy(False), QMessageBox.critical(self, "Error", e), self.log(e)))
@@ -1478,10 +1517,12 @@ class SemioAgentUI(QMainWindow):
                 if res.get("mesh_shape_glb"): 
                     files.append(f"Shape: {os.path.basename(res['mesh_shape_glb'])}")
                     self.current_mesh_path = res['mesh_shape_glb']
+                    self.current_3d_model_path = res['mesh_shape_glb']  # Store 3D model path
                     self.log(f"Set mesh path to: {self.current_mesh_path}")
                 if res.get("mesh_textured_glb"): 
                     files.append(f"Textured: {os.path.basename(res['mesh_textured_glb'])}")
                     self.current_mesh_path = res['mesh_textured_glb']
+                    self.current_3d_model_path = res['mesh_textured_glb']  # Store 3D model path
                     self.log(f"Set mesh path to: {self.current_mesh_path}")
 
             # Update 3D viewer
@@ -1490,12 +1531,105 @@ class SemioAgentUI(QMainWindow):
                 self._update_3d_viewer(files)
                 self.open_mesh_btn.setEnabled(True)
                 self.download_btn.setEnabled(True)
+                self.show_3d_btn.setEnabled(True)  # Enable 3D model button
+                self.city_btn.setEnabled(True)  # Enable city fragments button
             else:
                 self.log("No mesh files found in result")
                 self._update_3d_viewer([])
         self.worker.finished.connect(_finish)
         self.worker.errored.connect(lambda e: (self.set_busy(False), QMessageBox.critical(self, "Error", e), self.log(e)))
         self.worker.start()
+
+    def generate_city_fragments(self):
+        """Generate city fragments from existing 3D meshes"""
+        if self.busy: 
+            self.log("System is busy, please wait...")
+            return
+        self.set_busy(True); self.log("Generating city fragments...")
+        
+        try:
+            import subprocess
+            import sys
+            from pathlib import Path
+            
+            # Use existing 3D meshes as source
+            mesh_dir = self.out_root / "meshes"
+            if not mesh_dir.exists():
+                self.log("No meshes directory found. Please generate 3D meshes first.")
+                self.set_busy(False)
+                return
+                
+            # Find GLB files in the meshes directory
+            glb_files = list(mesh_dir.glob("*.glb"))
+            if not glb_files:
+                self.log("No GLB files found in meshes directory. Please generate 3D meshes first.")
+                self.set_busy(False)
+                return
+                
+            self.log(f"Found {len(glb_files)} GLB files to use as fragments")
+            
+            # Output path for city fragments (using your exact path structure)
+            output_path = self.out_root / "city.glb"
+            
+            # Run the city fragments script with your exact settings
+            cmd = [
+                sys.executable, "city_fragments_grid.py",
+                "--src", str(mesh_dir),
+                "--out", str(output_path),
+                "--rows", "6",
+                "--cols", "7", 
+                "--scale-mode", "uniform",
+                "--no-keep-z",
+                "--center-mode", "base",
+                "--src-up", "y",
+                "--export-up", "y"
+            ]
+            
+            self.log(f"Running: {' '.join(cmd)}")
+            self.log(f"Working directory: {self.out_root.parent}")
+            result = subprocess.run(cmd, capture_output=True, text=True, cwd=self.out_root.parent)
+            
+            if result.returncode == 0:
+                self.log("City fragments generated successfully!")
+                self.log(f"Output: {output_path}")
+                self.log(f"Script output: {result.stdout}")
+                
+                # Update 3D viewer with the city fragments
+                self.current_mesh_path = str(output_path)
+                self.current_city_model_path = str(output_path)  # Store city model path
+                self._update_3d_viewer([f"City: {output_path.name}"])
+                self.open_mesh_btn.setEnabled(True)
+                self.download_btn.setEnabled(True)
+                self.show_city_btn.setEnabled(True)  # Enable city button
+                
+            else:
+                self.log(f"Error generating city fragments: {result.stderr}")
+                self.log(f"Script stdout: {result.stdout}")
+                QMessageBox.critical(self, "Error", f"Failed to generate city fragments:\n{result.stderr}")
+                
+        except Exception as e:
+            self.log(f"Exception in city fragments generation: {e}")
+            QMessageBox.critical(self, "Error", f"Exception: {e}")
+        finally:
+            self.set_busy(False)
+
+    def show_3d_model(self):
+        """Switch to showing the Step 3 3D model"""
+        if self.current_3d_model_path and os.path.exists(self.current_3d_model_path):
+            self.current_mesh_path = self.current_3d_model_path
+            self._update_3d_viewer([f"3D Model: {os.path.basename(self.current_3d_model_path)}"])
+            self.log("Switched to Step 3 3D model")
+        else:
+            self.log("No 3D model available. Please generate 3D first.")
+
+    def show_city_model(self):
+        """Switch to showing the Step 4 city fragments"""
+        if self.current_city_model_path and os.path.exists(self.current_city_model_path):
+            self.current_mesh_path = self.current_city_model_path
+            self._update_3d_viewer([f"City: {os.path.basename(self.current_city_model_path)}"])
+            self.log("Switched to Step 4 city fragments")
+        else:
+            self.log("No city fragments available. Please generate city fragments first.")
 
     def run_full(self):
         if self.busy: return
@@ -1538,9 +1672,11 @@ class SemioAgentUI(QMainWindow):
         if res.get("mesh_shape_glb"): 
             files.append(f"Shape: {os.path.basename(res['mesh_shape_glb'])}")
             self.current_mesh_path = res['mesh_shape_glb']
+            self.current_3d_model_path = res['mesh_shape_glb']  # Store 3D model path
         if res.get("mesh_textured_glb"): 
             files.append(f"Textured: {os.path.basename(res['mesh_textured_glb'])}")
             self.current_mesh_path = res['mesh_textured_glb']
+            self.current_3d_model_path = res['mesh_textured_glb']  # Store 3D model path
 
         if files:
             # Wait a moment for viewer to load, then update with mesh
@@ -1548,6 +1684,8 @@ class SemioAgentUI(QMainWindow):
             QTimer.singleShot(2000, lambda: self._update_3d_viewer(files))
             self.open_mesh_btn.setEnabled(True)
             self.download_btn.setEnabled(True)
+            self.show_3d_btn.setEnabled(True)  # Enable 3D model button
+            self.city_btn.setEnabled(True)  # Enable city fragments button
         else:
             self._update_3d_viewer([])
 
@@ -1717,13 +1855,16 @@ class SemioAgentUI(QMainWindow):
     def _restore_viewer(self):
         """Restore the 3D viewer after processing"""
         if getattr(self, "viewer_web", None):
-            # Use the improved 3D viewer with better lighting and auto-rotation
-            viewer_html_path = os.path.join(os.path.dirname(__file__), "3d_viewer_improved.html")
+            # Use the enhanced 3D viewer with better lighting and auto-rotation
+            viewer_html_path = os.path.join(os.path.dirname(__file__), "3d_viewer_enhanced.html")
             if not os.path.exists(viewer_html_path):
-                # Fallback to simple working viewer
-                viewer_html_path = os.path.join(os.path.dirname(__file__), "3d_viewer_simple_working.html")
+                # Fallback to improved viewer
+                viewer_html_path = os.path.join(os.path.dirname(__file__), "3d_viewer_improved.html")
                 if not os.path.exists(viewer_html_path):
-                    viewer_html_path = os.path.join(os.path.dirname(__file__), "3d_viewer_self_contained_fixed.html")
+                    # Fallback to simple working viewer
+                    viewer_html_path = os.path.join(os.path.dirname(__file__), "3d_viewer_simple_working.html")
+                    if not os.path.exists(viewer_html_path):
+                        viewer_html_path = os.path.join(os.path.dirname(__file__), "3d_viewer_self_contained_fixed.html")
             
             if os.path.exists(viewer_html_path):
                 self.viewer_web.load(QUrl.fromLocalFile(os.path.abspath(viewer_html_path)))

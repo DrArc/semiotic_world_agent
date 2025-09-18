@@ -1,0 +1,306 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>SemioCity 3D Viewer (Enhanced)</title>
+  <style>
+    html, body { margin:0; height:100%; overflow:hidden; background:#151515; color:#ccc; }
+    #status { position: absolute; top: 8px; left: 8px; font: 12px/1.2 sans-serif; z-index: 10; }
+    #c { width: 100%; height: 100%; display:block; }
+    #controls { position: absolute; top: 8px; right: 8px; z-index: 10; }
+    #controls button { 
+      background: #333; 
+      color: #ccc; 
+      border: 1px solid #555; 
+      padding: 6px 12px; 
+      margin: 2px; 
+      cursor: pointer; 
+      border-radius: 4px;
+      font-size: 11px;
+    }
+    #controls button:hover { background: #555; }
+    #controls button.active { background: #0078d4; border-color: #106ebe; }
+  </style>
+  <!-- Use Three.js from CDN -->
+  <script src="https://unpkg.com/three@0.144.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.144.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://unpkg.com/three@0.144.0/examples/js/loaders/GLTFLoader.js"></script>
+</head>
+<body>
+  <div id="status">Ready</div>
+  <div id="controls">
+    <button id="autoRotateBtn" onclick="toggleAutoRotate()">Auto Rotate</button>
+    <button onclick="resetCamera()">Reset View</button>
+    <button onclick="toggleLighting()">Toggle Lighting</button>
+  </div>
+  <canvas id="c"></canvas>
+  <script>
+    let renderer, scene, camera, controls, currentModel;
+    let autoRotate = false;
+    let enhancedLighting = true;
+    let animationId;
+
+    function ensureRenderer() {
+      if (renderer) return;
+      
+      // Check if THREE is available
+      if (typeof THREE === 'undefined') {
+        document.getElementById('status').textContent = 'Loading Three.js...';
+        setTimeout(ensureRenderer, 100);
+        return;
+      }
+      
+      const canvas = document.getElementById('c');
+      renderer = new THREE.WebGLRenderer({ 
+        canvas, 
+        antialias: true, 
+        alpha: false,
+        powerPreference: "high-performance"
+      });
+      renderer.setPixelRatio(window.devicePixelRatio || 1);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.2;
+      onResize();
+      window.addEventListener('resize', onResize);
+
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x151515);
+
+      // Get actual canvas dimensions for proper aspect ratio
+      const canvasRect = canvas.getBoundingClientRect();
+      const aspect = canvasRect.width / canvasRect.height;
+      camera = new THREE.PerspectiveCamera(60, aspect, 0.01, 1000);
+      camera.position.set(3, 2, 3);
+
+      // Check if OrbitControls is available
+      if (typeof THREE.OrbitControls !== 'undefined') {
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.enableZoom = true;
+        controls.enablePan = true;
+        controls.autoRotate = false;
+        controls.autoRotateSpeed = 1.0;
+        controls.maxPolarAngle = Math.PI * 0.8; // Prevent camera from going under ground
+      } else {
+        document.getElementById('status').textContent = 'OrbitControls not available';
+      }
+
+      // Enhanced lighting setup
+      setupLighting();
+
+      animate();
+      document.getElementById('status').textContent = 'Ready';
+    }
+
+    function setupLighting() {
+      // Clear existing lights
+      scene.children = scene.children.filter(child => child.type !== 'Light');
+      
+      if (enhancedLighting) {
+        // Enhanced lighting setup for better illumination
+        
+        // Ambient light for overall illumination (warmer)
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
+        scene.add(ambientLight);
+
+        // Hemisphere light for natural sky/ground lighting (more dramatic)
+        const hemisphereLight = new THREE.HemisphereLight(0x87CEEB, 0x2D1B00, 0.8);
+        scene.add(hemisphereLight);
+
+        // Main directional light (sun) - stronger and more directional
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        directionalLight.position.set(8, 15, 8);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 4096;
+        directionalLight.shadow.mapSize.height = 4096;
+        directionalLight.shadow.camera.near = 0.5;
+        directionalLight.shadow.camera.far = 100;
+        directionalLight.shadow.camera.left = -20;
+        directionalLight.shadow.camera.right = 20;
+        directionalLight.shadow.camera.top = 20;
+        directionalLight.shadow.camera.bottom = -20;
+        directionalLight.shadow.bias = -0.0001;
+        scene.add(directionalLight);
+
+        // Fill light from the opposite side (warmer tone)
+        const fillLight = new THREE.DirectionalLight(0xffe4b5, 0.4);
+        fillLight.position.set(-5, 3, -5);
+        scene.add(fillLight);
+
+        // Rim light for better edge definition (cooler tone)
+        const rimLight = new THREE.DirectionalLight(0x87CEEB, 0.3);
+        rimLight.position.set(0, 8, -8);
+        scene.add(rimLight);
+
+        // Additional point light for more dynamic lighting
+        const pointLight = new THREE.PointLight(0xffffff, 0.5, 50);
+        pointLight.position.set(0, 10, 0);
+        pointLight.castShadow = true;
+        pointLight.shadow.mapSize.width = 1024;
+        pointLight.shadow.mapSize.height = 1024;
+        scene.add(pointLight);
+
+      } else {
+        // Basic lighting fallback
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+        scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(5, 10, 5);
+        directionalLight.castShadow = true;
+        scene.add(directionalLight);
+      }
+    }
+
+    function onResize() {
+      if (!renderer || !camera) return;
+      
+      // Get the actual container dimensions
+      const container = renderer.domElement.parentElement;
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      
+      if (h === 0 || w === 0) return;
+      
+      // Update canvas size to match container
+      renderer.domElement.style.width = w + 'px';
+      renderer.domElement.style.height = h + 'px';
+      
+      // Update camera aspect ratio
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      
+      // Update renderer size
+      renderer.setSize(w, h, false);
+    }
+
+    function animate() {
+      animationId = requestAnimationFrame(animate);
+      if (controls) controls.update();
+      if (renderer && scene && camera) renderer.render(scene, camera);
+    }
+
+    function toggleAutoRotate() {
+      if (controls) {
+        autoRotate = !autoRotate;
+        controls.autoRotate = autoRotate;
+        const btn = document.getElementById('autoRotateBtn');
+        if (btn) {
+          btn.textContent = autoRotate ? 'Stop Rotate' : 'Auto Rotate';
+          btn.classList.toggle('active', autoRotate);
+        }
+        document.getElementById('status').textContent = autoRotate ? 'Auto-rotating...' : 'Ready';
+      }
+    }
+
+    function resetCamera() {
+      if (camera && controls) {
+        camera.position.set(3, 2, 3);
+        controls.target.set(0, 0, 0);
+        controls.update();
+      }
+    }
+
+    function toggleLighting() {
+      enhancedLighting = !enhancedLighting;
+      setupLighting();
+      document.getElementById('status').textContent = enhancedLighting ? 'Enhanced lighting ON' : 'Basic lighting ON';
+    }
+
+    // Utility: frame and center the loaded scene
+    function frameObject(obj) {
+      const box = new THREE.Box3().setFromObject(obj);
+      const size = box.getSize(new THREE.Vector3()).length();
+      const center = box.getCenter(new THREE.Vector3());
+      
+      // Position camera based on object size
+      const distance = size * 2.5;
+      camera.position.set(distance, distance * 0.6, distance);
+      camera.lookAt(center);
+      
+      if (controls) {
+        controls.target.copy(center);
+        controls.update();
+      }
+    }
+
+    // Load model function
+    window.loadModel = function(url) {
+      try {
+        ensureRenderer();
+        document.getElementById('status').textContent = 'Loading… ' + url;
+        
+        // Remove existing model
+        if (currentModel) {
+          scene.remove(currentModel);
+        }
+        
+        const loader = new THREE.GLTFLoader();
+        loader.setCrossOrigin('anonymous');
+        
+        loader.load(
+          url,
+          function(gltf) {
+            currentModel = gltf.scene;
+            
+            // Enable shadows and improve materials for all meshes
+            currentModel.traverse(function(child) {
+              if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+                
+                // Enhance material properties for better lighting response
+                if (child.material) {
+                  if (Array.isArray(child.material)) {
+                    child.material.forEach(mat => enhanceMaterial(mat));
+                  } else {
+                    enhanceMaterial(child.material);
+                  }
+                }
+              }
+            });
+            
+            scene.add(currentModel);
+            frameObject(currentModel);
+            
+            document.getElementById('status').textContent = 'Model loaded: ' + url.split('/').pop();
+            console.log('Model loaded successfully:', url);
+          },
+          function(progress) {
+            const percent = Math.round((progress.loaded / progress.total) * 100);
+            document.getElementById('status').textContent = 'Loading… ' + percent + '%';
+          },
+          function(error) {
+            console.error('Error loading model:', error);
+            document.getElementById('status').textContent = 'Error loading model: ' + error.message;
+          }
+        );
+      } catch (error) {
+        console.error('Error in loadModel:', error);
+        document.getElementById('status').textContent = 'Error: ' + error.message;
+      }
+    };
+
+    function enhanceMaterial(material) {
+      // Enhance material properties for better lighting response
+      if (material.color) {
+        material.color.convertSRGBToLinear();
+      }
+      
+      // Increase roughness slightly for better light distribution
+      if (material.roughness !== undefined) {
+        material.roughness = Math.max(0.3, material.roughness);
+      }
+      
+      // Ensure material is updated
+      material.needsUpdate = true;
+    }
+
+    // Initialize viewer
+    ensureRenderer();
+  </script>
+</body>
+</html>
